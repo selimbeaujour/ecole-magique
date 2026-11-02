@@ -136,6 +136,16 @@ h1,h2,h3{margin:0;font-weight:700}
 .textwrap{display:flex;flex-direction:column;align-items:center;gap:14px;margin-top:18px}
 .textin{font-size:40px;font-weight:600;padding:12px 20px;border-radius:20px;border:3px solid var(--line);text-align:center;width:min(480px,92%);outline:none;-webkit-user-select:text;user-select:text;color:var(--ink)}
 .textin:focus{border-color:var(--maths)}
+.textdisp{min-width:min(480px,92%);font-size:42px;letter-spacing:2px;text-align:center}
+.textdisp .ph{color:#C9BFAE}
+.kbd{display:flex;flex-direction:column;gap:8px;width:100%;max-width:900px}
+.kbd .kr{display:flex;gap:7px;justify-content:center}
+.kbd button{flex:1;max-width:82px;height:62px;border-radius:14px;background:#fff;font-size:30px;font-weight:600;box-shadow:0 4px 0 var(--line);padding:0}
+.kbd button:active{transform:translateY(3px);box-shadow:0 1px 0 var(--line)}
+.kbd .acc{background:#FFF1C9}
+.kbd .del{background:#FFE3E3;max-width:130px;flex:1.6}
+.kbd .ok{background:var(--good);color:#fff;box-shadow:0 4px 0 #158A55;max-width:200px;flex:2.4;font-size:24px}
+@media (max-width:720px){.kbd button{height:54px;font-size:24px}.kbd .kr{gap:4px}}
 .textin.good{border-color:var(--good);color:var(--good)}
 .textin.bad{border-color:var(--bad);color:var(--bad);animation:shake .35s}
 .feedback{visibility:hidden;position:fixed;left:0;right:0;bottom:0;padding:20px 24px calc(24px + env(safe-area-inset-bottom));display:flex;align-items:center;gap:18px;transform:translateY(110%);transition:transform .25s,visibility .25s;z-index:20}
@@ -294,7 +304,7 @@ canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:50}
   <div class="gate panel">
     <h2>🔒 Espace parent</h2>
     <p id="gateQ"></p>
-    <input id="gateIn" class="name-input" inputmode="numeric" autocomplete="off" style="width:200px">
+    <input id="gateIn" class="name-input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" style="width:200px;letter-spacing:12px">
     <div class="row" style="margin-top:16px"><button class="btn" data-home>Retour</button><button class="btn primary" id="gateOk">Entrer</button></div>
     <p id="gateErr" style="color:var(--bad)"></p>
   </div>
@@ -1130,11 +1140,12 @@ function renderQ(){
   }else if(q.kind==='number'){
     A.innerHTML=`<div class="numwrap"><div class="numdisp" id="numDisp">&nbsp;</div><div class="pad">${[1,2,3,4,5,6,7,8,9].map(n=>`<button data-k="${n}">${n}</button>`).join('')}<button class="del" data-k="del">⌫</button><button data-k="0">0</button><button class="ok" data-k="ok">✓</button></div></div>`;
   }else{
-    A.innerHTML=`<div class="textwrap"><input class="textin" id="textIn" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="…"><button class="btn primary" id="textOk">Valider ✓</button>${q.peek?`<button class="peek" id="peekBtn">Pas de son ? Voir le mot 2 secondes</button>`:''}</div>`;
-    const inp=$('#textIn');inp.addEventListener('keydown',e=>{if(e.key==='Enter')submitText()});
-    $('#textOk').addEventListener('click',submitText);
-    if(q.peek&&$('#peekBtn'))$('#peekBtn').addEventListener('click',()=>{const inp=$('#textIn');const old=inp.placeholder;inp.value='';inp.placeholder=q.peek;setTimeout(()=>{inp.placeholder=old},2000)});
-    if(!q.autoSpeak)setTimeout(()=>{try{inp.focus()}catch(e){}},200);
+    const row=(keys,cls)=>`<div class="kr">${keys.map(k=>`<button class="${cls||''}" data-t="${k}">${k}</button>`).join('')}</div>`;
+    A.innerHTML=`<div class="textwrap"><div class="numdisp textdisp" id="textDisp"><span class="ph">…</span></div>
+      <div class="kbd">${row([...'azertyuiop'])}${row([...'qsdfghjklm'])}<div class="kr">${[...'wxcvbn'].map(k=>`<button data-t="${k}">${k}</button>`).join('')}<button data-t="'">'</button><button class="del" data-t="del">⌫</button></div>
+      ${row(['é','è','ê','à','â','ç','ù','û','î','ô','œ'],'acc')}<div class="kr"><button class="ok" data-t="ok">Valider ✓</button></div></div>
+      ${q.peek?`<button class="peek" id="peekBtn">Pas de son ? Voir le mot 2 secondes</button>`:''}</div>`;
+    if(q.peek&&$('#peekBtn'))$('#peekBtn').addEventListener('click',()=>{if(quiz.locked)return;const d=$('#textDisp');d.innerHTML=`<span class="ph">${esc(q.peek)}</span>`;setTimeout(()=>{if(quiz&&!quiz.locked)renderText()},2000)});
   }
   if(q.autoSpeak&&q.speak)setTimeout(()=>speak(q.speak.text,q.speak.lang),350);
 }
@@ -1143,6 +1154,8 @@ $('#qAnswer').addEventListener('click',e=>{
   if(!quiz||quiz.locked)return;const q=quiz.qs[quiz.i];
   const c=e.target.closest('.choice');
   if(c&&q.kind==='choice'){if(c.classList.contains('dim'))return;check(q.choices[+c.dataset.i].value,c);return}
+  const tk=e.target.closest('[data-t]');
+  if(tk&&q.kind==='text'){typeText(tk.dataset.t);return}
   const k=e.target.closest('[data-k]');
   if(k&&q.kind==='number'){
     const v=k.dataset.k;
@@ -1156,6 +1169,11 @@ document.addEventListener('keydown',e=>{
   if(!quiz||$('#s-quiz').classList.contains('hidden'))return;
   const q=quiz.qs[quiz.i];
   if($('#fb').classList.contains('show')&&e.key==='Enter'){$('#fbBtn').click();return}
+  if(q.kind==='text'&&!quiz.locked){
+    if(e.key==='Backspace')typeText('del');else if(e.key==='Enter')typeText('ok');
+    else if(e.key.length===1&&/[a-zà-ÿœ' -]/i.test(e.key))typeText(e.key.toLowerCase());else return;
+    e.preventDefault();return;
+  }
   if(q.kind!=='number'||quiz.locked)return;
   if(/^[0-9]$/.test(e.key)&&quiz.input.length<5){quiz.input=(quiz.input==='0'?'':quiz.input)+e.key}
   else if(e.key==='Backspace')quiz.input=quiz.input.slice(0,-1);
@@ -1163,7 +1181,14 @@ document.addEventListener('keydown',e=>{
   else return;
   const d=$('#numDisp');d.className='numdisp';d.innerHTML=quiz.input||'&nbsp;';
 });
-function submitText(){if(!quiz||quiz.locked)return;const v=$('#textIn').value;if(v.trim()==='')return;check(v)}
+function renderText(){const d=$('#textDisp');if(!d)return;d.className='numdisp textdisp';d.innerHTML=quiz.input?esc(quiz.input):'<span class="ph">…</span>'}
+function typeText(t){
+  if(!quiz||quiz.locked)return;
+  if(t==='ok'){if(quiz.input.trim()!=='')check(quiz.input);return}
+  if(t==='del')quiz.input=quiz.input.slice(0,-1);
+  else if(quiz.input.length<20)quiz.input+=t;
+  renderText();
+}
 const norm=s=>String(s).trim().toLowerCase().replace(/[’`]/g,"'").replace(/\s+/g,' ');
 const CHEERS=['Bravo !','Super !','Génial !','Excellent !','Trop fort !','Parfait !','Champion !','Bien joué !'];
 const CHEER_ICO=['🎉','🌟','🥳','👏','💪','😎','🚀','✨'];
@@ -1174,7 +1199,7 @@ function check(val,el){
   else if(q.kind==='text')ok=norm(val)===norm(q.answer);
   else ok=String(val)===String(q.answer);
   quiz.tries++;
-  const disp=q.kind==='number'?$('#numDisp'):q.kind==='text'?$('#textIn'):null;
+  const disp=q.kind==='number'?$('#numDisp'):q.kind==='text'?$('#textDisp'):null;
   if(ok){
     quiz.locked=true;
     const pts=quiz.tries===1?1:.5;quiz.results[quiz.i]=pts;
@@ -1291,9 +1316,9 @@ function confetti(){
 }
 
 /* ========== PARENT ========== */
-let gateAns=0;
-function openGate(){const a=rnd(12,19),b=rnd(6,9);gateAns=a*b;$('#gateQ').textContent=`Pour entrer, combien font ${a} × ${b} ?`;$('#gateIn').value='';$('#gateErr').textContent='';show('gate');setTimeout(()=>{try{$('#gateIn').focus()}catch(e){}},150)}
-$('#gateOk').addEventListener('click',()=>{if(Number($('#gateIn').value)===gateAns){renderParent();show('parent')}else{$('#gateErr').textContent='Ce n\'est pas la bonne réponse.';openGate()}});
+const PARENT_CODE='1234';
+function openGate(){$('#gateQ').textContent='Entrez le code parent :';$('#gateIn').value='';$('#gateErr').textContent='';show('gate');setTimeout(()=>{try{$('#gateIn').focus()}catch(e){}},150)}
+$('#gateOk').addEventListener('click',()=>{if($('#gateIn').value.trim()===PARENT_CODE){renderParent();show('parent')}else{$('#gateIn').value='';$('#gateErr').textContent='Code incorrect.';try{$('#gateIn').focus()}catch(e){}}});
 $('#gateIn').addEventListener('keydown',e=>{if(e.key==='Enter')$('#gateOk').click()});
 function renderParent(){
   const st=state.stats;const rate=st.answered?Math.round(st.correct/st.answered*100):0;
