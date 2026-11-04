@@ -87,6 +87,16 @@ h1,h2,h3{margin:0;font-weight:700}
 .subj.guadeloupe{box-shadow:0 7px 0 #A8222D;background-color:#E63946;background-image:repeating-linear-gradient(90deg,rgba(255,201,60,.38) 0 14px,transparent 14px 46px,rgba(40,170,90,.30) 46px 54px,transparent 54px 92px),repeating-linear-gradient(0deg,rgba(255,201,60,.38) 0 14px,transparent 14px 46px,rgba(40,170,90,.30) 46px 54px,transparent 54px 92px)}
 .subj.guadeloupe h3,.subj.guadeloupe .lvl{text-shadow:0 2px 0 rgba(120,0,10,.45)}
 .qtxt{font-size:30px;font-weight:500;margin:8px 0}
+.tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
+.topic{display:flex;gap:16px;align-items:center;text-align:left;background:#fff;border-radius:22px;padding:18px 20px;box-shadow:0 6px 0 var(--line);border-left:10px solid var(--c)}
+.topic:active{transform:translateY(4px);box-shadow:0 2px 0 var(--line)}
+.topic .tico{font-size:46px;width:70px;height:70px;border-radius:20px;background:#F1F4FB;display:grid;place-items:center;flex:none}
+.topic h3{font-size:24px}.topic p{margin:4px 0;font-size:16px;color:var(--soft)}.topic small{font-size:14px;color:var(--c);font-weight:600}
+.topic.mix{background:linear-gradient(120deg,#fff,#FFF6D6)}
+.cgroup{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}.cgroup b{width:90px;font-size:20px}
+.tchip{background:#F1F4FB;border-radius:99px;padding:12px 20px;font-size:20px;font-weight:600;border:3px solid transparent}
+.tchip.on{background:var(--francais);color:#fff;border-color:#8E0009}
+.choice svg{display:block;margin:0 auto}
 @media (min-width:960px){.subjects{grid-template-columns:repeat(3,1fr)}}
 .subj:active{box-shadow:0 2px 0 rgba(0,0,0,.25)}
 .home-bottom{display:flex;gap:14px;margin-top:22px}
@@ -278,6 +288,13 @@ canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:50}
       <div class="last" id="hLastBadges"></div>
     </button>
   </div>
+</section>
+
+<!-- TOPICS -->
+<section id="s-topics" class="screen hidden">
+  <div class="page-head"><button class="icon-btn" data-home>←</button><h1 id="tpTitle"></h1><div class="chip" id="tpLevel"></div></div>
+  <div class="tgrid" id="tpGrid"></div>
+  <div class="panel hidden" id="conjPanel" style="margin-top:18px"></div>
 </section>
 
 <!-- QUIZ -->
@@ -506,7 +523,7 @@ const hLabel=(h,m)=>m===0?`${h} h`:`${h} h ${String(m).padStart(2,'0')}`;
 const money=v=>v<5?`<span class="coin ${v===1?'c1':''}">${v} €</span>`:`<span class="note n${v}">${v} €</span>`;
 const nearNums=(a,spread)=>[a+1,a-1,a+10,a-10,a+spread,a-spread,a+2].filter(x=>x>=0);
 
-const THEMES={
+const LIB={
  maths:[
   {id:'calcul',name:'Calcul',min:1,gen(L){
     const add=Math.random()<.55;let a,b;
@@ -658,7 +675,7 @@ const THEMES={
     return choiceQ({counter:'anglais',emo:true,speak:{text:e[0],lang:'en-GB'},prompt:`Trouve l'image :<div class="sent" style="font-size:44px;font-weight:700;color:var(--anglais)">${esc(e[0])}</div><button class="speak" data-speak>🔊 Écouter</button>`,answer:e[1],distractors:ds,explain:`<b>${e[0]}</b> = ${e[1]} ${e[2]}`});
   }},
   {id:'listen',name:'Écoute',min:1,gen(L){
-    if(!canSpeak)return THEMES.anglais[1].gen(L);
+    if(!canSpeak)return LIB.anglais[1].gen(L);
     const pool=EN.filter(e=>e[4]<=L);const e=pick(pool);
     const ds=shuffle(pool.filter(x=>x!==e&&x[1]!==e[1])).map(x=>x[1]);
     return choiceQ({counter:'anglais',emo:true,speak:{text:e[0],lang:'en-GB'},autoSpeak:true,prompt:`Écoute bien et trouve l'image :<div><button class="speak big" data-speak>🔊 Écouter</button></div>`,answer:e[1],distractors:ds,explain:`Le mot était <b>${e[0]}</b> = ${e[1]} ${e[2]}`});
@@ -679,8 +696,8 @@ const THEMES={
     const ds=shuffle(EN_PHRASES.filter(x=>x!==p)).map(x=>x[1]);
     return choiceQ({counter:'anglais',speak:{text:p[0],lang:'en-GB'},prompt:`Que veut dire :<div class="sent" style="font-size:40px;font-weight:700;color:var(--anglais)">${esc(p[0])}</div><button class="speak" data-speak>🔊 Écouter</button>`,answer:p[1],distractors:ds,explain:`${esc(p[0])} = ${esc(p[1])}`});
   }},
-  {id:'spell',name:'Écris en anglais',min:3,gen(L){
-    const e=pick(EN.filter(x=>x[0].length<=6&&!x[0].includes(' ')&&!x[0].includes('-')&&x[4]<=2));
+  {id:'spell',name:'Écris en anglais',min:1,gen(L){
+    const e=pick(EN.filter(x=>x[0].length<=(L===1?4:L===2?6:9)&&!x[0].includes(' ')&&!x[0].includes('-')&&x[4]<=Math.min(L,2)));
     return {kind:'text',counter:'anglais',speak:{text:e[0],lang:'en-GB'},prompt:`Écris le mot en anglais :<div class="emoji-big">${e[1]}</div><button class="speak" data-speak>🔊 Aide : écouter</button>`,answer:e[0].toLowerCase(),explain:`${e[1]} = <b>${e[0]}</b>`};
   }}
  ],
@@ -943,7 +960,7 @@ function mapQ(L){
   const a=pick(names);const p=PLACES[a];
   return choiceQ({counter:'carte',prompt:`<div class="qtxt">Que trouve-t-on à l'étoile <span style="color:#FF5E5B">★</span> ?</div>${mapSVG(null,p)}`,answer:a,distractors:shuffle(Object.keys(PLACES)),explain:`${p[2]} C'est ${a}.`});
 }
-THEMES.monde=[
+LIB.monde=[
   bankTheme('vivant','Le vivant',QLM.vivant),
   bankTheme('matiere','La matière',QLM.matiere),
   bankTheme('corps','Le corps humain',QLM.corps),
@@ -951,7 +968,7 @@ THEMES.monde=[
   bankTheme('espace','Le ciel et la Terre',QLM.espace),
   bankTheme('securite','Vivre ensemble',QLM.securite)
 ];
-THEMES.guadeloupe=[
+LIB.guadeloupe=[
   {id:'carte',name:'La carte',min:1,gen:mapQ},
   bankTheme('geo','Géographie et histoire',GWA.geo),
   bankTheme('nature','Nature et animaux',GWA.nature),
@@ -959,6 +976,354 @@ THEMES.guadeloupe=[
   bankTheme('cuisine','Cuisine et fruits',GWA.cuisine),
   {id:'creole',name:'Mots créoles',min:1,gen:creoleQ}
 ];
+
+/* ========== THÉMATIQUES & NOUVEAUX EXERCICES ========== */
+const EXO=(id,name,min,gen)=>({id,name,min,gen});
+const ex=(s,id)=>LIB[s].find(x=>x.id===id);
+const withCounter=(e,c)=>{const g=e.gen;return {...e,gen:(L,o)=>({...g(L,o),counter:c})}};
+const SHAPE_COLS=['#2563EB','#E30613','#0E9F6E','#E8A500','#7C3AED'];
+
+/* ---------- MATHS : calcul mental ---------- */
+const mental=EXO('mental','Calcul mental',1,L=>{
+  const r=Math.random();let a,b,op,tip='';
+  if(L===1){
+    if(r<.3){a=rnd(1,8)*10;b=rnd(1,9-a/10)*10;op='+';tip='On compte les dizaines.'}
+    else if(r<.65){a=rnd(2,15);b=rnd(1,20-a);op='+'}
+    else{a=rnd(8,20);b=rnd(1,a-1);op='-'}
+  }else if(L===2){
+    if(r<.25){a=rnd(21,89);b=rnd(3,9);op='+'}
+    else if(r<.5){if(Math.random()<.5){a=rnd(21,69);b=rnd(1,3)*10;op='+'}else{a=rnd(41,98);b=rnd(1,Math.floor(a/10)-1)*10;op='-'}tip='On ajoute ou on enlève seulement les dizaines.'}
+    else if(r<.7){if(Math.random()<.5){a=rnd(15,80);b=9;op='+';tip='Ajouter 9, c\'est ajouter 10 puis enlever 1.'}else{a=rnd(20,90);b=9;op='-';tip='Enlever 9, c\'est enlever 10 puis ajouter 1.'}}
+    else{a=rnd(21,95);b=rnd(3,9);op='-'}
+  }else{
+    if(r<.3){a=rnd(15,59);b=rnd(12,39);op='+';tip='Ajoute d\'abord les dizaines, puis les unités.'}
+    else if(r<.5){a=100;b=rnd(11,89);op='-';tip='Pense au complément à 100.'}
+    else if(r<.7){a=rnd(110,880);b=rnd(1,9)*10;op=Math.random()<.5?'+':'-'}
+    else if(r<.85){a=rnd(30,500);b=pick([11,19,21,99]);op='+';tip=b===11?'Ajouter 11 = ajouter 10 puis 1.':b===19?'Ajouter 19 = ajouter 20 puis enlever 1.':b===21?'Ajouter 21 = ajouter 20 puis 1.':'Ajouter 99 = ajouter 100 puis enlever 1.'}
+    else{a=rnd(40,99);b=rnd(12,39);op='-'}
+  }
+  const res=op==='+'?a+b:a-b;
+  return {kind:'number',prompt:`<div class="bigq">${a} ${op==='+'?'+':'−'} ${b} = ?</div>`,answer:res,explain:`${a} ${op==='+'?'+':'−'} ${b} = ${res}${tip?'<br>💡 '+tip:''}`};
+});
+const complements=EXO('complements','Compléments',1,L=>{
+  let a,t;
+  if(L===1){if(Math.random()<.6){t=10;a=rnd(1,9)}else{t=20;a=rnd(11,19)}}
+  else if(L===2){if(Math.random()<.5){t=100;a=rnd(1,9)*10}else{a=rnd(11,89);if(a%10===0)a++;t=Math.ceil(a/10)*10}}
+  else{if(Math.random()<.6){t=100;a=rnd(11,89)}else{t=1000;a=rnd(1,9)*100}}
+  return {kind:'number',prompt:`Combien faut-il ajouter pour arriver à <b>${t}</b> ?<div class="bigq">${a} + ? = ${t}</div>`,answer:t-a,explain:`${a} + ${t-a} = ${t}`};
+});
+const fois10=EXO('fois10','× 10 et × 100',2,L=>{
+  const r=Math.random();
+  if(L===2||r<.4){const a=rnd(2,L===2?50:99);return {kind:'number',prompt:`<div class="bigq">${a} × 10 = ?</div>`,answer:a*10,explain:`Multiplier par 10 : on ajoute un 0 → ${a*10}`}}
+  if(r<.75){const a=rnd(2,9);return {kind:'number',prompt:`<div class="bigq">${a} × 100 = ?</div>`,answer:a*100,explain:`Multiplier par 100 : on ajoute deux 0 → ${a*100}`}}
+  const a=rnd(2,99);return {kind:'number',prompt:`Combien de dizaines dans <b>${a*10}</b> ?`,answer:a,explain:`${a*10} = ${a} dizaines`};
+});
+
+/* ---------- MATHS : géométrie ---------- */
+const regPoly=(n,r,cx,cy,off)=>Array.from({length:n},(_,i)=>{const a=off+i*2*Math.PI/n;return [cx+r*Math.cos(a),cy+r*Math.sin(a)]});
+const SHAPES={
+ 'un carré':{lvl:1,sides:4,pts:()=>[[45,45],[155,45],[155,155],[45,155]]},
+ 'un rectangle':{lvl:1,sides:4,pts:()=>[[15,60],[185,60],[185,140],[15,140]]},
+ 'un triangle':{lvl:1,sides:3,pts:()=>[[rnd(60,140),rnd(18,40)],[rnd(160,188),rnd(150,182)],[rnd(12,40),rnd(150,182)]]},
+ 'un cercle':{lvl:1,sides:0},
+ 'un losange':{lvl:2,sides:4,pts:()=>[[100,12],[162,100],[100,188],[38,100]]},
+ 'un pentagone':{lvl:3,sides:5,pts:()=>regPoly(5,86,100,106,-Math.PI/2)},
+ 'un hexagone':{lvl:3,sides:6,pts:()=>regPoly(6,86,100,100,0)}
+};
+function polySVG(pts,col,extra,rot){
+  const body=pts?`<polygon points="${pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ')}" fill="${col}" fill-opacity=".85" stroke="#14213D" stroke-width="4" stroke-linejoin="round"/>`:`<circle cx="100" cy="100" r="80" fill="${col}" fill-opacity=".85" stroke="#14213D" stroke-width="4"/>`;
+  return `<svg viewBox="-10 -10 220 220" style="width:210px;height:210px;display:block;margin:8px auto"><g transform="rotate(${rot||0} 100 100)">${body}${extra||''}</g></svg>`;
+}
+const formes=EXO('formes','Les figures',1,L=>{
+  const av=Object.keys(SHAPES).filter(k=>SHAPES[k].lvl<=L);const a=pick(av);const S=SHAPES[a];
+  return choiceQ({counter:'geo',prompt:`<div class="qtxt">Quelle est cette figure ?</div>${polySVG(S.pts&&S.pts(),pick(SHAPE_COLS),'',rnd(-10,10))}`,answer:a,distractors:shuffle(av),explain:a==='un carré'?'4 côtés égaux et 4 angles droits : c\'est un carré.':a==='un rectangle'?'4 angles droits, côtés opposés égaux : c\'est un rectangle.':a==='un losange'?'4 côtés égaux, mais pas d\'angle droit : c\'est un losange.':a==='un cercle'?'Tous les points sont à la même distance du centre : c\'est un cercle.':`C'est ${a} : ${S.sides} côtés.`});
+});
+const cotes=EXO('cotes','Côtés et sommets',1,L=>{
+  let pts,n;
+  if(L===3&&Math.random()<.5){n=rnd(3,8);pts=regPoly(n,86,100,100,Math.random()*6).map(([x,y])=>{const k=.75+Math.random()*.25;return [100+(x-100)*k,100+(y-100)*k]})}
+  else{const av=Object.keys(SHAPES).filter(k=>SHAPES[k].sides>0&&(L>1||SHAPES[k].lvl===1||k==='un pentagone'||k==='un hexagone'));const k=pick(av);pts=SHAPES[k].pts();n=SHAPES[k].sides}
+  const w=L>=2&&Math.random()<.4?'sommets':'côtés';
+  return {kind:'number',counter:'geo',prompt:`<div class="qtxt">Combien de <b>${w}</b> a cette figure ?</div>${polySVG(pts,pick(SHAPE_COLS),'',rnd(-10,10))}`,answer:n,explain:`Elle a ${n} ${w}.${w==='sommets'?' (Un sommet, c\'est un « coin ».)':''}`};
+});
+function angleSVG(deg,rot){
+  const R=70,c=80,t=a=>[c+R*Math.cos(a*Math.PI/180),c-R*Math.sin(a*Math.PI/180)];
+  const [x1,y1]=t(rot),[x2,y2]=t(rot+deg);
+  return `<svg viewBox="0 0 160 160" style="width:150px;height:150px"><line x1="${c}" y1="${c}" x2="${x1.toFixed(1)}" y2="${y1.toFixed(1)}" stroke="#14213D" stroke-width="6" stroke-linecap="round"/><line x1="${c}" y1="${c}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#14213D" stroke-width="6" stroke-linecap="round"/><circle cx="${c}" cy="${c}" r="6" fill="#E30613"/></svg>`;
+}
+const angles=EXO('angles','L\'angle droit',1,L=>{
+  const others=L===3?shuffle([60,75,105,120,45,135]).slice(0,3):[pick([30,45,60]),pick([120,135,150]),pick([40,50,140,160])];
+  const degs=shuffle([90,...others]);
+  const rotOf=()=>L===1?pick([0,90,180,270]):L===2?rnd(0,7)*45:rnd(0,359);
+  return {kind:'choice',counter:'geo',prompt:`<div class="qtxt">Quel angle est un <b>angle droit</b> ? 📐</div><div style="font-size:16px;color:var(--soft)">Tu peux vérifier avec ton équerre ou le coin d'une feuille.</div>`,
+    choices:degs.map(d=>({value:String(d),label:angleSVG(d,rotOf())})),answer:'90',explain:'L\'angle droit a la forme du coin d\'une feuille de papier.'};
+});
+const SYM_YES=[...'AHIMOTUVWXY'],SYM_NO=[...'FGJLNPRSZ'];
+const symetrie=EXO('symetrie','La symétrie',2,L=>{
+  const r=Math.random();
+  if(r<.4){const a=pick(SYM_YES);return choiceQ({counter:'geo',emo:true,prompt:`<div class="qtxt">Quelle lettre a un <b>axe de symétrie vertical</b> ?</div><div style="font-size:16px;color:var(--soft)">Si on la plie au milieu (de haut en bas), les deux moitiés se superposent.</div>`,answer:a,distractors:shuffle(SYM_NO),explain:`La lettre ${a} est pareille à gauche et à droite.`})}
+  if(L===3&&r<.7){
+    const items=[['un carré','4',SHAPES['un carré'].pts()],['un rectangle','2',SHAPES['un rectangle'].pts()],['un losange','2',SHAPES['un losange'].pts()],['un triangle équilatéral','3',regPoly(3,90,100,112,-Math.PI/2)],['un cercle','une infinité',null]];
+    const [n,a,pts]=pick(items);
+    return choiceQ({counter:'geo',prompt:`<div class="qtxt">Combien d'axes de symétrie a ${n} ?</div>${polySVG(pts,pick(SHAPE_COLS))}`,answer:a,distractors:['1','2','3','4','une infinité'],explain:`${cap(n)} a ${a} axe${a==='1'?'':'s'} de symétrie.`});
+  }
+  const R=SHAPES['un rectangle'].pts(),C=SHAPES['un carré'].pts(),Lo=SHAPES['un losange'].pts(),Ti=[[100,15],[175,180],[25,180]],Ts=[[60,20],[185,175],[15,150]];
+  const line=(x1,y1,x2,y2)=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#E30613" stroke-width="5" stroke-dasharray="12 8"/>`;
+  const cases=[[R,line(100,30,100,170),'oui'],[R,line(0,100,200,100),'oui'],[R,line(15,60,185,140),'non'],[C,line(30,30,170,170),'oui'],[Ti,line(100,0,100,195),'oui'],[Ts,line(100,0,100,195),'non'],[Lo,line(100,0,100,200),'oui'],[R,line(70,30,70,170),'non']];
+  const [pts,ln,a]=pick(cases);
+  return choiceQ({counter:'geo',prompt:`<div class="qtxt">La ligne rouge est-elle un <b>axe de symétrie</b> ?</div>${polySVG(pts,pick(SHAPE_COLS),ln)}`,answer:a,distractors:['oui','non'],n:2,keepOrder:(x,y)=>x==='oui'?-1:1,explain:a==='oui'?'Si on plie sur la ligne, les deux moitiés se superposent.':'Si on plie sur la ligne, les deux moitiés ne se superposent pas.'});
+});
+const longueur=EXO('longueur','Mesurer',1,L=>{
+  const s=L===1?0:rnd(1,5),e=Math.min(12,s+rnd(2,L===1?12:7));const len=e-s;const x0=30,k=40;
+  let svg='<svg viewBox="0 0 540 125" style="width:100%;max-width:560px;display:block;margin:10px auto"><rect x="10" y="62" width="520" height="56" rx="6" fill="#FFF3C4" stroke="#C99300" stroke-width="2"/>';
+  for(let i=0;i<=24;i++){const x=x0+i*k/2;const big=i%2===0;svg+=`<line x1="${x}" y1="62" x2="${x}" y2="${big?84:74}" stroke="#14213D" stroke-width="${big?2.5:1.5}"/>`;if(big)svg+=`<text x="${x}" y="106" text-anchor="middle" font-size="18" font-weight="600" fill="#14213D" font-family="Fredoka,sans-serif">${i/2}</text>`}
+  svg+=`<line x1="${x0+s*k}" y1="40" x2="${x0+e*k}" y2="40" stroke="#E30613" stroke-width="8" stroke-linecap="round"/><line x1="${x0+s*k}" y1="28" x2="${x0+s*k}" y2="56" stroke="#E30613" stroke-width="3"/><line x1="${x0+e*k}" y1="28" x2="${x0+e*k}" y2="56" stroke="#E30613" stroke-width="3"/></svg>`;
+  return {kind:'number',counter:'geo',prompt:`<div class="qtxt">Combien de <b>centimètres</b> mesure le trait rouge ?</div>${svg}`,answer:len,explain:s===0?`Le trait va de 0 à ${e} : ${len} cm.`:`Le trait va de ${s} à ${e} : ${e} − ${s} = ${len} cm.`};
+});
+const perimetre=EXO('perimetre','Le périmètre',2,L=>{
+  const t=L===2?0:rnd(0,2);const k=18;const lab=(x,y,txt)=>`<text x="${x}" y="${y}" text-anchor="middle" font-size="18" font-weight="700" fill="#14213D" font-family="Fredoka,sans-serif">${txt}</text>`;
+  if(t===0){const a=rnd(3,9),b=rnd(2,a-1);const w=a*k,h=b*k,x=(220-w)/2,y=(200-h)/2;
+    const all=L===2;
+    const svg=`<svg viewBox="-30 0 280 210" style="width:340px;display:block;margin:8px auto"><rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#BFD7FF" stroke="#14213D" stroke-width="3"/>${lab(110,y-8,a+' cm')}${lab(x-24,100,b+' cm')}${all?lab(110,y+h+22,a+' cm')+lab(x+w+24,100,b+' cm'):''}</svg>`;
+    return {kind:'number',counter:'geo',prompt:`<div class="qtxt">Quel est le <b>périmètre</b> de ce rectangle ?</div><div style="font-size:16px;color:var(--soft)">Le périmètre, c'est le tour de la figure.</div>${svg}`,answer:2*(a+b),explain:`${a} + ${b} + ${a} + ${b} = ${2*(a+b)} cm`};}
+  if(t===1){const c=rnd(2,9);const w=c*k,x=(220-w)/2,y=(200-w)/2;
+    const svg=`<svg viewBox="-30 0 280 210" style="width:320px;display:block;margin:8px auto"><rect x="${x}" y="${y}" width="${w}" height="${w}" fill="#FFD6D6" stroke="#14213D" stroke-width="3"/>${lab(110,y-8,c+' cm')}</svg>`;
+    return {kind:'number',counter:'geo',prompt:`<div class="qtxt">Quel est le <b>périmètre</b> de ce <b>carré</b> ?</div>${svg}`,answer:4*c,explain:`Un carré a 4 côtés égaux : 4 × ${c} = ${4*c} cm`};}
+  const a=rnd(3,9),b=rnd(3,9),c=rnd(Math.max(2,Math.abs(a-b)+1),Math.min(9,a+b-1));
+  const svg=`<svg viewBox="-30 0 280 210" style="width:340px;display:block;margin:8px auto"><polygon points="110,25 195,170 25,170" fill="#C8F0DA" stroke="#14213D" stroke-width="3"/>${lab(50,95,a+' cm')}${lab(172,95,b+' cm')}${lab(110,192,c+' cm')}</svg>`;
+  return {kind:'number',counter:'geo',prompt:`<div class="qtxt">Quel est le <b>périmètre</b> de ce triangle ?</div>${svg}`,answer:a+b+c,explain:`${a} + ${b} + ${c} = ${a+b+c} cm`};
+});
+const SOLIDES=[
+ ['Combien de faces a un cube ?','6',['4','8','12'],1,'Un cube a 6 faces carrées, comme un dé.','🎲'],
+ ['Un dé a la forme d\'un…','cube',['cylindre','cône','pavé droit'],1,'Le dé est un cube.','🎲'],
+ ['Quel solide peut rouler dans tous les sens ?','la boule',['le cube','le pavé droit','la pyramide'],1,'La boule (la sphère) roule partout.','⚽'],
+ ['Une boîte de conserve a la forme d\'un…','cylindre',['cube','cône','pavé droit'],2,'La boîte de conserve est un cylindre.','🥫'],
+ ['Un cornet de glace a la forme d\'un…','cône',['cylindre','cube','pavé droit'],2,'Le cornet est un cône.','🍦'],
+ ['Une boîte à chaussures a la forme d\'un…','pavé droit',['cube','cylindre','cône'],2,'Ses faces sont des rectangles : c\'est un pavé droit.','📦'],
+ ['Les faces d\'un cube sont des…','carrés',['triangles','cercles','losanges'],2,'Les 6 faces du cube sont des carrés.'],
+ ['Combien de sommets a un cube ?','8',['4','6','12'],3,'Un cube a 8 sommets (les coins).'],
+ ['Combien d\'arêtes a un cube ?','12',['6','8','10'],3,'Un cube a 12 arêtes.'],
+ ['Les faces d\'un pavé droit sont des…','rectangles',['cercles','triangles','losanges'],3,'Le pavé droit a 6 faces rectangulaires.']
+];
+const solides=withCounter(bankTheme('solides','Les solides',SOLIDES),'geo');
+
+/* ---------- MATHS : problèmes ---------- */
+const ITEMS=[['un cahier','cahiers',2,5],['un stylo','stylos',1,3],['une glace','glaces',2,4],['un livre','livres',5,12],['une gourde','gourdes',4,9],['un ballon','ballons',8,15],['un jeu','jeux',6,15],['une casquette','casquettes',5,12]];
+const achats=EXO('achats','Les achats',1,L=>{
+  const [i1,i2]=shuffle(ITEMS);const [N,P]=pick(NAMES);
+  if(L===1){const a=rnd(2,15),b=rnd(2,15);
+    if(Math.random()<.5)return {kind:'number',prompt:`<div class="qtxt" style="text-align:left">🛒 ${N} achète ${i1[0]} à <b>${a} €</b> et ${i2[0]} à <b>${b} €</b>. Combien paie-t-${P} en tout ?</div>`,answer:a+b,explain:`${a} + ${b} = ${a+b} €`};
+    const h=rnd(a+1,30);return {kind:'number',prompt:`<div class="qtxt" style="text-align:left">🛒 ${N} a <b>${h} €</b>. ${cap(P)} achète ${i1[0]} à <b>${a} €</b>. Combien lui reste-t-il ?</div>`,answer:h-a,explain:`${h} − ${a} = ${h-a} €`};}
+  if(L===2){
+    if(Math.random()<.5){const n=rnd(2,5),p=rnd(i1[2],Math.min(i1[3],6));return {kind:'number',prompt:`<div class="qtxt" style="text-align:left">🛒 ${N} achète <b>${n} ${i1[1]}</b> à <b>${p} €</b> l'un. Combien paie-t-${P} ?</div>`,answer:n*p,explain:`${n} × ${p} = ${n*p} €`}}
+    const pr=rnd(3,18),bill=pr<10&&Math.random()<.5?10:20;return {kind:'number',prompt:`<div class="qtxt" style="text-align:left">🛒 ${cap(i1[0])} coûte <b>${pr} €</b>. ${N} paie avec un billet de <b>${bill} €</b>. Combien lui rend-on ?</div>`,answer:bill-pr,explain:`${bill} − ${pr} = ${bill-pr} €`};}
+  if(Math.random()<.5){const n=rnd(2,5),p=rnd(2,6),q=rnd(3,15);return {kind:'number',prompt:`<div class="qtxt" style="text-align:left">🛒 ${N} achète <b>${n} ${i1[1]}</b> à <b>${p} €</b> l'un et ${i2[0]} à <b>${q} €</b>. Combien paie-t-${P} en tout ?</div>`,answer:n*p+q,explain:`${n} × ${p} = ${n*p} €, puis ${n*p} + ${q} = ${n*p+q} €`}}
+  const a=rnd(8,20),b=rnd(5,15);return {kind:'number',prompt:`<div class="qtxt" style="text-align:left">🛒 ${N} achète ${i1[0]} à <b>${a} €</b> et ${i2[0]} à <b>${b} €</b>. ${cap(P)} paie avec un billet de <b>50 €</b>. Combien lui rend-on ?</div>`,answer:50-a-b,explain:`${a} + ${b} = ${a+b} €, puis 50 − ${a+b} = ${50-a-b} €`};
+});
+const ACTIV=['Le match de foot','Le film','Le cours de piscine','La fête de l\'école','Le trajet en bus','L\'entraînement'];
+const durTxt=d=>d>=60?Math.floor(d/60)+' h'+(d%60?' '+d%60+' min':''):d+' min';
+const durees=EXO('durees','Les durées',1,L=>{
+  const a=pick(ACTIV);
+  if(L===1){const h=rnd(8,17),d=rnd(1,3);
+    if(Math.random()<.5)return {kind:'number',prompt:`<div class="qtxt" style="text-align:left">⏰ ${a} commence à <b>${h} h</b> et dure <b>${d} heure${d>1?'s':''}</b>.<br>À quelle heure ça se termine ?<br><small style="color:var(--soft)">Écris seulement le nombre d'heures.</small></div>`,answer:h+d,explain:`${h} h + ${d} h = ${h+d} h`};
+    return {kind:'number',prompt:`<div class="qtxt" style="text-align:left">⏰ ${a} commence à <b>${h} h</b> et se termine à <b>${h+d} h</b>.<br>Combien d'heures ça dure ?</div>`,answer:d,explain:`De ${h} h à ${h+d} h, il y a ${d} h.`};}
+  if(L===3&&Math.random()<.3){const h=rnd(8,17),m=rnd(0,6)*5,d=rnd(2,5)*5+rnd(1,3)*5;
+    return {kind:'number',prompt:`<div class="qtxt" style="text-align:left">⏰ ${a} commence à <b>${hLabel(h,m)}</b> et se termine à <b>${hLabel(h,m+d)}</b>.<br>Combien de <b>minutes</b> ça dure ?</div>`,answer:d,explain:`De ${hLabel(h,m)} à ${hLabel(h,m+d)} : ${d} minutes.`}}
+  const step=L===2?15:5;const h=rnd(8,17),m=rnd(0,60/step-1)*step;const d=L===2?pick([15,30,45,60,90]):rnd(3,11)*5+(Math.random()<.3?60:0);
+  const end=h*60+m+d,lab=t=>hLabel(Math.floor(t/60),t%60);
+  return choiceQ({prompt:`<div class="qtxt" style="text-align:left">⏰ ${a} commence à <b>${hLabel(h,m)}</b> et dure <b>${durTxt(d)}</b>.<br>À quelle heure ça se termine ?</div>`,answer:lab(end),distractors:shuffle([lab(end+15),lab(end-15),lab(end+60),lab(end-60),lab(end+5)]),explain:`${hLabel(h,m)} + ${durTxt(d)} = ${lab(end)}`});
+});
+
+/* ---------- FRANÇAIS : grammaire ---------- */
+const GSUJ=[
+ [['Le petit chat','S'],['dort','V'],['sur le canapé','C']],[['Mes parents','S'],['préparent','V'],['un bon repas','C']],
+ [['Léa','S'],['lit','V'],['une histoire','C']],[['Le maître','S'],['écrit','V'],['au tableau','C']],
+ [['Les enfants','S'],['jouent','V'],['dans la cour','C']],[['Le soleil','S'],['brille','V'],['dans le ciel','C']],
+ [['Le vent','S'],['souffle','V'],['très fort','C']],[['Ma grand-mère','S'],['tricote','V'],['une écharpe','C']],
+ [['Demain','C'],['papa','S'],['ira','V'],['à la plage','C']],[['Dans la forêt','C'],['les oiseaux','S'],['chantent','V']],
+ [['Chaque matin','C'],['mon frère','S'],['prend','V'],['le bus','C']],[['Pendant les vacances','C'],['Hugo et Jade','S'],['nagent','V'],['dans la mer','C']]
+];
+const verbeSujet=EXO('verbesujet','Le verbe et le sujet',1,L=>{
+  const pool=L<3?GSUJ.filter(x=>x[0][1]==='S'):GSUJ;const s=pick(pool);
+  const role=L===1?'V':L===2?pick(['V','S','S']):pick(['V','S']);
+  const g=s.find(x=>x[1]===role)[0],verb=s.find(x=>x[1]==='V')[0],subj=s.find(x=>x[1]==='S')[0];
+  const sent=(s[0][1]==='C'?s[0][0]+', '+s.slice(1).map(x=>x[0]).join(' '):s.map(x=>x[0]).join(' '))+'.';
+  return choiceQ({prompt:`<div class="qtxt">Quel est le <b>${role==='V'?'verbe':'sujet'}</b> de cette phrase ?</div><div class="sent">${esc(sent)}</div>`,answer:g,distractors:s.filter(x=>x[1]!==role).map(x=>x[0]),n:s.length,
+    explain:role==='V'?`« ${verb} » est le verbe : il change si on dit « hier » ou « demain ».`:`Qui est-ce qui ${verb} ? → ${subj}. C'est le sujet.`});
+});
+const TYPES_PH=[
+ ['Le chien aboie dans le jardin.','déclarative'],['Il fait beau aujourd\'hui.','déclarative'],['Ma sœur aime les crêpes.','déclarative'],['Nous partons demain.','déclarative'],
+ ['Où habites-tu ?','interrogative'],['Est-ce que tu viens jouer ?','interrogative'],['Quel âge as-tu ?','interrogative'],['Aimes-tu les bananes ?','interrogative'],
+ ['Quelle belle journée !','exclamative'],['Comme ce gâteau est bon !','exclamative'],['Quel magnifique but !','exclamative'],['Que tu es grand !','exclamative'],
+ ['Range ta chambre.','impérative'],['Ferme la porte, s\'il te plaît.','impérative'],['Écoute bien la consigne.','impérative'],['Prends ton cartable.','impérative']
+];
+const TYPE_EXPL={'déclarative':'Elle raconte ou donne une information. Elle finit par un point.','interrogative':'Elle pose une question. Elle finit par un point d\'interrogation « ? ».','exclamative':'Elle exprime une émotion (joie, surprise…). Elle finit par « ! ».','impérative':'Elle donne un ordre ou un conseil.'};
+const typePhrase=EXO('typephrase','Types de phrases',1,L=>{
+  const allowed=L===1?['déclarative','interrogative']:L===2?['déclarative','interrogative','exclamative']:['déclarative','interrogative','exclamative','impérative'];
+  const [s,t]=pick(TYPES_PH.filter(x=>allowed.includes(x[1])));
+  return choiceQ({prompt:`<div class="qtxt">Quel est le type de cette phrase ?</div><div class="sent">${esc(s)}</div>`,answer:'phrase '+t,distractors:allowed.map(a=>'phrase '+a),n:allowed.length,keepOrder:(a,b)=>allowed.indexOf(a.slice(7))-allowed.indexOf(b.slice(7)),explain:`C'est une phrase ${t}. ${TYPE_EXPL[t]}`});
+});
+const NEG=[['Il','joue','au foot'],['Nous','regardons','la télévision'],['Le chat','dort','dans son panier'],['Tu','chantes','bien'],['Elle','aime','le chocolat'],['Je','vais','à la piscine'],['Mes amis','arrivent','ce soir'],['Léo','écoute','la maîtresse'],['Vous','habitez','ici'],['Il','a','faim'],['Lina','range','sa chambre'],['On','entend','la mer']];
+const negation=EXO('negation','La phrase négative',1,L=>{
+  const [S,V,R]=pick(NEG);const vow=/^[aeéèêiouhy]/i.test(V);
+  const aff=`${S} ${V} ${R}.`,neg=`${S} ${vow?"n'"+V:'ne '+V} pas ${R}.`;
+  if(L===1){const isNeg=Math.random()<.5;return choiceQ({prompt:`<div class="qtxt">Cette phrase est-elle affirmative ou négative ?</div><div class="sent">${esc(isNeg?neg:aff)}</div>`,answer:isNeg?'négative':'affirmative',distractors:['affirmative','négative'],n:2,keepOrder:(a,b)=>a==='affirmative'?-1:1,explain:isNeg?'Il y a « ne… pas » : la phrase est négative.':'Il n\'y a pas « ne… pas » : la phrase est affirmative.'})}
+  const ds=[`${S} ${V} pas ${R}.`,`${S} ${vow?"n'"+V:'ne '+V} ${R}.`,`${S} pas ${V} ${R}.`];if(vow)ds.unshift(`${S} ne ${V} pas ${R}.`);
+  return choiceQ({prompt:`<div class="qtxt">Quelle est la forme <b>négative</b> de :</div><div class="sent">${esc(aff)}</div>`,answer:neg,distractors:ds,explain:`On encadre le verbe avec « ne… pas »${vow?' (n\' devant une voyelle)':''} : ${esc(neg)}`});
+});
+const NOMS_G=[['chaise','f'],['soleil','m'],['lune','f'],['arbre','m'],['maison','f'],['vélo','m'],['fleur','f'],['ballon','m'],['école','f'],['oiseau','m'],['table','f'],['livre','m'],['pomme','f'],['cahier','m'],['fenêtre','f'],['crayon','m'],['voiture','f'],['nuage','m'],['étoile','f'],['jardin','m'],['règle','f'],['stylo','m'],['montagne','f'],['bateau','m']];
+const FEMININS=[['un chanteur','une chanteuse',['une chanteure','une chanteurse'],2],['un acteur','une actrice',['une acteuse','une acteure'],2],['un boulanger','une boulangère',['une boulangeuse','une boulangerie'],2],['un lion','une lionne',['une lione','une lionesse'],2],['un cousin','une cousine',['une cousinne','une cousinette'],2],['un ami','une amie',['une ami','une amite'],2],['un danseur','une danseuse',['une danseure','une danseurice'],2],['un directeur','une directrice',['une directeuse','une directeure'],3],['un voisin','une voisine',['une voisinne','une voisinette'],2],
+ ['petit','petite',['petitte','petiteuse'],3],['gentil','gentille',['gentile','gentilette'],3],['beau','belle',['beaue','bele'],3],['blanc','blanche',['blanque','blance'],3],['heureux','heureuse',['heureuxe','heureusse'],3],['sportif','sportive',['sportife','sportiffe'],3],['gros','grosse',['grose','grosé'],3],['long','longue',['longe','longé'],3]];
+const genre=EXO('genre','Masculin et féminin',1,L=>{
+  if(L===1||Math.random()<.3){const [n,g]=pick(NOMS_G);return choiceQ({prompt:`<div class="qtxt">Complète avec <b>un</b> ou <b>une</b> :</div><div class="sent"><span class="blank">&nbsp;</span> ${n}</div>`,answer:g==='m'?'un':'une',distractors:['un','une'],n:2,keepOrder:(a,b)=>a==='un'?-1:1,explain:`On dit « ${g==='m'?'un':'une'} ${n} » : ce nom est ${g==='m'?'masculin':'féminin'}.`})}
+  const [m,f,ds]=pick(FEMININS.filter(x=>x[3]<=L));const adj=!m.startsWith('un ');
+  return choiceQ({prompt:`<div class="qtxt">Quel est le <b>féminin</b> ${adj?'de l\'adjectif':'de'} :</div><div class="sent">${m}</div>`,answer:f,distractors:ds,n:3,explain:`${m} → ${f}`});
+});
+
+/* ---------- FRANÇAIS : conjugaison ---------- */
+Object.assign(IRR,{
+ 'dire':{p:['dis','dis','dit','disons','dites','disent'],f:['dirai','diras','dira','dirons','direz','diront'],i:['disais','disais','disait','disions','disiez','disaient']},
+ 'venir':{p:['viens','viens','vient','venons','venez','viennent'],f:['viendrai','viendras','viendra','viendrons','viendrez','viendront'],i:['venais','venais','venait','venions','veniez','venaient']},
+ 'pouvoir':{p:['peux','peux','peut','pouvons','pouvez','peuvent'],f:['pourrai','pourras','pourra','pourrons','pourrez','pourront'],i:['pouvais','pouvais','pouvait','pouvions','pouviez','pouvaient']},
+ 'voir':{p:['vois','vois','voit','voyons','voyez','voient'],f:['verrai','verras','verra','verrons','verrez','verront'],i:['voyais','voyais','voyait','voyions','voyiez','voyaient']},
+ 'prendre':{p:['prends','prends','prend','prenons','prenez','prennent'],f:['prendrai','prendras','prendra','prendrons','prendrez','prendront'],i:['prenais','prenais','prenait','prenions','preniez','prenaient']},
+ 'vouloir':{p:['veux','veux','veut','voulons','voulez','veulent'],f:['voudrai','voudras','voudra','voudrons','voudrez','voudront'],i:['voulais','voulais','voulait','voulions','vouliez','voulaient']}
+});
+const VERBS={g1:['chanter','jouer','parler','aimer','danser','regarder','sauter','dessiner','marcher','écouter','manger','nager','ranger','commencer','lancer','avancer'],
+ g2:['finir','choisir','grandir','remplir','obéir','réfléchir','rougir','bâtir','punir','nourrir'],
+ g3:['aller','faire','dire','venir','pouvoir','voir','prendre','vouloir'],ea:['être','avoir']};
+const GROUP_OF=v=>VERBS.g2.includes(v)?'g2':VERBS.g3.includes(v)?'g3':VERBS.ea.includes(v)?'ea':'g1';
+const GROUP_LBL={g1:'1er groupe',g2:'2e groupe',g3:'3e groupe',ea:'être et avoir'};
+const TENSE_LBL={p:'Présent',f:'Futur',i:'Imparfait'};
+function conj2(v,t){
+  if(IRR[v])return IRR[v][t];
+  const r=v.slice(0,-2);
+  if(VERBS.g2.includes(v)){if(t==='p')return ['is','is','it','issons','issez','issent'].map(e=>r+e);if(t==='f')return ['ai','as','a','ons','ez','ont'].map(e=>v+e);return ['ais','ais','ait','ions','iez','aient'].map(e=>r+'iss'+e)}
+  const soft=e=>/^[ao]/.test(e)?(v.endsWith('ger')?r+'e'+e:v.endsWith('cer')?r.slice(0,-1)+'ç'+e:r+e):r+e;
+  if(t==='p')return ['e','es','e','ons','ez','ent'].map(soft);
+  if(t==='f')return ['ai','as','a','ons','ez','ont'].map(e=>v+e);
+  return ['ais','ais','ait','ions','iez','aient'].map(soft);
+}
+const PRON_LBL=['je','tu','il / elle','nous','vous','ils / elles'];
+function conjPick(L,o){
+  o=o||{};const gs=(o.g&&o.g.length?o.g:['g1','g2','g3','ea']);const ts=(o.t&&o.t.length?o.t:['p','f','i']);
+  const g=pick(gs);let vs=VERBS[g];if(g==='g1'&&L===1)vs=vs.filter(v=>!/(ger|cer)$/.test(v));
+  const v=pick(vs),t=pick(ts),forms=conj2(v,t),i=rnd(0,5),p=pick(PRON[i]);
+  return {g,v,t,forms,i,p,ts,gs};
+}
+const startsVowel=f=>/^[aeéèêiouhy]/i.test(f);
+const conjForme=EXO('conjforme','Conjuguer',1,(L,o)=>{
+  const {g,v,t,forms,i,p}=conjPick(L,o);const ans=forms[i];const shown=p==='je'&&startsVowel(ans)?"j'":p+' ';
+  const prompt=`<div class="qtxt">Conjugue <b>${v}</b> au <b>${TENSE_NAME[t]}</b> :</div><div class="sent">${shown}<span class="blank">&nbsp;</span></div>`;
+  const ex2=withPron(p,ans);
+  const tip=v.endsWith('ger')&&/gea|geo/.test(ans)?'<br>💡 Avec -ger, on garde le « e » devant a et o (nous mangeons).':v.endsWith('cer')&&/ç/.test(ans)?'<br>💡 Avec -cer, on met une cédille devant a et o (nous commençons).':'';
+  if(L===3&&Math.random()<.45)return {kind:'text',counter:'conj',prompt:prompt+`<div style="font-size:16px;color:var(--soft)">Écris le verbe conjugué.</div>`,answer:ans,explain:ex2+tip};
+  const ds=shuffle(forms.filter(f=>f!==ans));if(L>=2){const ot=pick(['p','f','i'].filter(x=>x!==t));ds.unshift(conj2(v,ot)[i])}
+  return choiceQ({counter:'conj',prompt,answer:ans,distractors:ds,n:L===1?3:4,explain:ex2+tip});
+});
+const conjPronom=EXO('conjpronom','Le bon pronom',1,(L,o)=>{
+  const {v,t,forms,i}=conjPick(L,o);const f=forms[i];
+  const valid=PRON_LBL.filter((_,j)=>forms[j]===f);const ans=PRON_LBL[i];
+  return choiceQ({counter:'conj',prompt:`<div class="qtxt">Quel pronom va avec ce verbe ? <small>(${v}, ${TENSE_NAME[t]})</small></div><div class="sent"><span class="blank">&nbsp;</span> ${f}</div>`,answer:ans,distractors:PRON_LBL.filter(x=>!valid.includes(x)),n:4,explain:`${withPron(PRON[i][0],f)}`+(valid.length>1?` (on peut aussi dire : ${valid.filter(x=>x!==ans).map(x=>withPron(x.split(' ')[0],f)).join(', ')})`:'')});
+});
+const conjTemps=EXO('conjtemps','Quel temps ?',1,(L,o)=>{
+  const {v,t,forms,i,p}=conjPick(L,o);const f=withPron(p,forms[i]);
+  const hint={p:'C\'est maintenant.',f:'C\'est plus tard, dans l\'avenir.',i:'C\'est dans le passé, ça durait.'};
+  return choiceQ({counter:'conj',prompt:`<div class="qtxt">À quel temps est ce verbe ?</div><div class="sent">${f}</div>`,answer:TENSE_LBL[t],distractors:['Présent','Futur','Imparfait'],n:3,keepOrder:(a,b)=>['Présent','Futur','Imparfait'].indexOf(a)-['Présent','Futur','Imparfait'].indexOf(b),explain:`« ${f} » est au ${TENSE_NAME[t]}. ${hint[t]}`});
+});
+const conjInfinitif=EXO('conjinfinitif','L\'infinitif',2,(L,o)=>{
+  const {g,v,forms,i,p}=conjPick(L,o);const f=withPron(p,forms[i]);
+  const others=shuffle([...VERBS.g1,...VERBS.g2,...VERBS.g3,...VERBS.ea].filter(x=>x!==v));
+  const close=others.filter(x=>x[0]===v[0]);
+  return choiceQ({counter:'conj',prompt:`<div class="qtxt">Quel est l'<b>infinitif</b> de ce verbe ?</div><div class="sent">${f}</div>`,answer:v,distractors:[...close,...others],explain:`« ${f} » vient du verbe <b>${v}</b>.`});
+});
+const conjGroupe=EXO('conjgroupe','Le groupe du verbe',1,(L,o)=>{
+  const gs=((o&&o.g&&o.g.length)?o.g:['g1','g2','g3']).filter(g=>g!=='ea');
+  if(!gs.length)return conjForme.gen(L,o);
+  const g=pick(gs),v=pick(VERBS[g]);
+  const expl={g1:'Les verbes en -er (sauf aller) sont du 1er groupe.',g2:`Verbe en -ir qui fait « nous ${conj2(v,'p')[3]} » : 2e groupe.`,g3:v==='aller'?'Attention, « aller » finit par -er mais il est du 3e groupe !':'Les autres verbes sont du 3e groupe.'};
+  return choiceQ({counter:'conj',prompt:`<div class="qtxt">De quel groupe est le verbe :</div><div class="sent"><b>${v}</b></div>`,answer:GROUP_LBL[g],distractors:['1er groupe','2e groupe','3e groupe'],n:3,keepOrder:(a,b)=>a.localeCompare(b),explain:expl[g]});
+});
+
+/* ---------- FRANÇAIS : vocabulaire ---------- */
+const SYN=[['content','heureux',['triste','fatigué','méchant'],1],['joli','beau',['laid','petit','vieux'],1],['triste','malheureux',['joyeux','rapide','gentil'],1],['un vélo','une bicyclette',['une moto','un camion','une trottinette'],1],
+ ['crier','hurler',['chuchoter','dormir','manger'],2],['regarder','observer',['écouter','toucher','oublier'],2],['finir','terminer',['commencer','oublier','courir'],2],['une voiture','une automobile',['un avion','un bateau','un vélo'],2],['gentil','aimable',['méchant','grand','sale'],2],['petit','minuscule',['énorme','long','haut'],2],
+ ['commencer','débuter',['arrêter','finir','attendre'],3],['malin','rusé',['bête','lent','fragile'],3],['effrayé','apeuré',['courageux','calme','content'],3],['énorme','gigantesque',['minuscule','léger','étroit'],3],['habiter','résider',['partir','voyager','construire'],3]];
+const CONTR=[['grand','petit',['gros','haut','long'],1],['chaud','froid',['tiède','brûlant','mouillé'],1],['le jour','la nuit',['le soir','le matin','le soleil'],1],['ouvrir','fermer',['pousser','casser','entrer'],1],['monter','descendre',['grimper','sauter','marcher'],1],['plein','vide',['lourd','gros','rempli'],1],
+ ['gagner','perdre',['jouer','trouver','courir'],2],['propre','sale',['neuf','beau','lavé'],2],['lourd','léger',['gros','grand','dur'],2],['rapide','lent',['vite','fort','calme'],2],['entrer','sortir',['rentrer','venir','passer'],2],['le début','la fin',['le milieu','le départ','le commencement'],2],
+ ['possible','impossible',['dépossible','nonpossible','repossible'],3],['heureux','malheureux',['déheureux','inheureux','reheureux'],3],['coller','décoller',['recoller','incoller','malcoller'],3],['visible','invisible',['dévisible','revisible','malvisible'],3],['faire','défaire',['refaire','infaire','malfaire'],3],['poli','impoli',['repoli','nonpoli','dépolir'],3]];
+const synonymes=EXO('synonymes','Synonymes',1,L=>{const [w,a,ds]=pick(SYN.filter(x=>x[3]<=L));return choiceQ({prompt:`<div class="qtxt">Quel mot veut dire <b>presque la même chose</b> que :</div><div class="sent">« ${w} »</div>`,answer:a,distractors:ds,explain:`« ${w} » et « ${a} » sont des synonymes.`})});
+const contraires=EXO('contraires','Contraires',1,L=>{const [w,a,ds]=pick(CONTR.filter(x=>x[3]<=L));return choiceQ({prompt:`<div class="qtxt">Quel est le <b>contraire</b> de :</div><div class="sent">« ${w} »</div>`,answer:a,distractors:ds,explain:`Le contraire de « ${w} » est « ${a} ».`})});
+const FAMILLES=[[['dent','dentiste','dentifrice'],'danse',1],[['jardin','jardinier','jardiner'],'jaune',1],[['fleur','fleuriste','fleurir'],'flèche',1],[['chant','chanter','chanteur'],'champ',2],[['lait','laitier','laitage'],'laine',2],[['poisson','poissonnier','poissonnerie'],'poison',2],[['glace','glacier','glaçon'],'glisser',2],[['terre','terrain','terrier'],'tête',3],[['mer','marin','marine'],'mère',3],[['boulanger','boulangerie','boulangère'],'boule',3],[['froid','froideur','refroidir'],'fromage',3]];
+const familles=EXO('familles','Familles de mots',1,L=>{const [f,i]=pick(FAMILLES.filter(x=>x[2]<=L));return choiceQ({prompt:`<div class="qtxt">Quel mot n'est <b>pas de la même famille</b> ?</div>`,answer:i,distractors:f,n:4,explain:`${f.join(', ')} viennent tous du mot « ${f[0]} ». « ${i} » n'en fait pas partie.`})});
+const CATS=[['fruits','un fruit',['pomme','banane','fraise','poire','cerise']],['légumes','un légume',['carotte','poireau','haricot','salade','courgette']],['animaux','un animal',['chien','lion','vache','lapin','girafe']],['vêtements','un vêtement',['pull','jupe','chaussette','manteau','pantalon']],['outils','un outil',['marteau','scie','tournevis','pince','perceuse']],['instruments de musique','un instrument de musique',['piano','guitare','violon','flûte','tambour']],['meubles','un meuble',['table','chaise','lit','armoire','canapé']],['moyens de transport','un moyen de transport',['bus','train','avion','bateau','vélo']],['métiers','un métier',['boulanger','pompier','médecin','facteur','maçon']],['sports','un sport',['football','tennis','natation','judo','basket']]];
+const generique=EXO('generique','Les catégories',1,L=>{
+  const [c,...rest]=shuffle(CATS);
+  if(L<3||Math.random()<.5){const w=shuffle(c[2]).slice(0,3);return choiceQ({prompt:`<div class="qtxt">Complète :</div><div class="sent">${w.join(', ')} : ce sont des…</div>`,answer:c[0],distractors:rest.map(x=>x[0]),explain:`${w.join(', ')} sont des ${c[0]}.`})}
+  const a=pick(c[2]);return choiceQ({prompt:`<div class="qtxt">Quel mot est <b>${c[1]}</b> ?</div>`,answer:a,distractors:rest.map(x=>pick(x[2])),explain:`${cap(a)} est ${c[1]}.`});
+});
+
+/* ---------- FRANÇAIS : orthographe ---------- */
+const SONS=[
+ {lvl:1,set:['m','n'],rule:'On écrit <b>m</b> devant m, b et p.',w:[['ca_pagne','m','campagne'],['ja_bon','m','jambon'],['cha_bre','m','chambre'],['po_pier','m','pompier'],['to_ber','m','tomber'],['i_portant','m','important'],['ja_be','m','jambe'],['e_porter','m','emporter'],['ma_ger','n','manger'],['ve_dredi','n','vendredi'],['e_fant','n','enfant'],['mo_tagne','n','montagne'],['pa_talon','n','pantalon'],['cha_ter','n','chanter']]},
+ {lvl:1,set:['c','ç'],rule:'On met une <b>cédille</b> (ç) devant a, o et u pour faire le son [s].',w:[['gar_on','ç','garçon'],['le_on','ç','leçon'],['ma_on','ç','maçon'],['gla_on','ç','glaçon'],['fran_ais','ç','français'],['re_u','ç','reçu'],['re_evoir','c','recevoir'],['mer_i','c','merci'],['_itron','c','citron'],['balan_e','c','balance'],['_erise','c','cerise'],['commen_ons','ç','commençons']]},
+ {lvl:2,set:['g','gu','ge'],rule:'g + a, o, u → [g] ; gu + e, i → [g] ; ge + a, o → [j].',w:[['ba_e','gu','bague'],['_itare','gu','guitare'],['_êpe','gu','guêpe'],['pi_on','ge','pigeon'],['plon_on','ge','plongeon'],['_irafe','g','girafe'],['oran_e','g','orange'],['_âteau','g','gâteau'],['_orille','g','gorille'],['bou_ie','g','bougie'],['man_ons','ge','mangeons'],['ba_ette','gu','baguette']]},
+ {lvl:3,set:['s','ss'],rule:'Entre deux voyelles, <b>s</b> fait [z] et <b>ss</b> fait [s].',w:[['poi_on 🐟','ss','poisson'],['poi_on ☠️','s','poison'],['mai_on','s','maison'],['cou_in','s','cousin'],['ta_e','ss','tasse'],['chau_ure','ss','chaussure'],['ro_e','s','rose'],['cla_e','ss','classe'],['de_ert 🍰','ss','dessert'],['oi_eau','s','oiseau'],['bro_e','ss','brosse'],['vi_age','s','visage']]}
+];
+const sons=EXO('sons','Les sons difficiles',1,L=>{
+  const grp=pick(SONS.filter(x=>x.lvl<=L));const [w,a,full]=pick(grp.w);
+  return choiceQ({prompt:`<div class="qtxt">Complète le mot :</div><div class="sent" style="font-size:44px">${esc(w).replace('_','<span class="blank">&nbsp;</span>')}</div>`,answer:a,distractors:grp.set,n:grp.set.length,keepOrder:(x,y)=>grp.set.indexOf(x)-grp.set.indexOf(y),explain:`On écrit <b>${full}</b>. ${grp.rule}`});
+});
+const GN=[['chat','m','noir','noire'],['robe','f','long','longue'],['arbre','m','vert','verte'],['pomme','f','vert','verte'],['ballon','m','rond','ronde'],['maison','f','blanc','blanche'],['crayon','m','bleu','bleue'],['jupe','f','court','courte'],['chien','m','gentil','gentille'],['table','f','petit','petite'],['livre','m','lourd','lourde'],['fille','f','grand','grande'],['garçon','m','petit','petite'],['fleur','f','joli','jolie']];
+const BEFORE=['petit','grand','joli'];
+const accordGN=EXO('accord','Les accords',2,L=>{
+  const [n,g,am,af]=pick(GN);const pl=L===2?true:Math.random()<.6;
+  const build=(nounPl,adj,adjPl,det)=>{const N=n+(nounPl?'s':''),A=adj+(adjPl?'s':'');return BEFORE.includes(am)?`${det} ${A} ${N}`:`${det} ${N} ${A}`};
+  const det=pl?'des':g==='m'?'un':'une',adjOk=g==='f'?af:am,adjBad=g==='f'?am:af;
+  const ok=build(pl,adjOk,pl,det);
+  const ds=pl?[build(true,adjOk,false,det),build(false,adjOk,true,det),build(false,adjOk,false,det)]:[];
+  if(L===3)ds.push(build(pl,adjBad,pl,det));
+  if(!pl)ds.push(build(true,adjOk,false,det),build(false,adjOk,true,det));
+  return choiceQ({prompt:`<div class="qtxt">Quel groupe de mots est <b>bien écrit</b> ?</div>`,answer:ok,distractors:shuffle(ds.filter(x=>x!==ok)),explain:`${ok} : ${pl?'au pluriel, le nom et l\'adjectif prennent un -s':'au singulier, pas de -s'}${g==='f'?', et l\'adjectif est au féminin':''}.`});
+});
+const MOTS_OK=[['bonjour',['bonjours','bonjoure'],1],['dans',['dan','danz'],1],['avec',['avek','avecque'],1],['très',['tré','trè'],1],['merci',['mersi','mercie'],1],
+ ['toujours',['toujour','toujourt'],2],['demain',['demin','deumain'],2],['après',['aprés','aprè'],2],['pendant',['pandant','pendan'],2],['hier',['yer','hièr'],2],
+ ['beaucoup',['baucoup','beaucou'],3],["aujourd'hui",['aujourdui',"aujourd'hu"],3],['maintenant',['maintenan','mintenant'],3],['longtemps',['longtemp','lontemps'],3],['souvent',['souvant','souven'],3],['parce que',['parsque','parce-que'],3]];
+const motBien=EXO('motbien','Le mot bien écrit',1,L=>{const [w,ds]=pick(MOTS_OK.filter(x=>x[2]<=L));return choiceQ({prompt:`<div class="qtxt">Quel mot est <b>bien écrit</b> ?</div>`,answer:w,distractors:ds,n:3,explain:`On écrit <b>${esc(w)}</b>.`})});
+
+/* ---------- ANGLAIS ---------- */
+const days=EXO('days','Les jours',1,L=>{
+  const d=pick(EN_DAYS);
+  if(L===1||Math.random()<.5)return choiceQ({counter:'anglais',speak:{text:d[0],lang:'en-GB'},prompt:`<div class="qtxt">Que veut dire :</div><div class="sent" style="font-size:42px;font-weight:700;color:var(--anglais)">${d[0]}</div><button class="speak" data-speak>🔊 Écouter</button>`,answer:d[1],distractors:shuffle(EN_DAYS.map(x=>x[1])),explain:`${d[0]} = ${d[1]}`});
+  return choiceQ({counter:'anglais',speakAfter:{text:d[0],lang:'en-GB'},prompt:`<div class="qtxt">Comment dit-on en anglais :</div><div class="sent" style="font-size:42px;font-weight:700">${d[1]}</div>`,answer:d[0],distractors:shuffle(EN_DAYS.map(x=>x[0])),explain:`${d[1]} = ${d[0]}`});
+});
+
+/* ---------- LES THÉMATIQUES ---------- */
+const solo=(s,id,ico,desc)=>{const e=ex(s,id);return {id,ico,name:e.name,desc,exos:[e]}};
+const TOPICS={
+ maths:[
+  {id:'mental',ico:'🧠',name:'Calcul mental',desc:'Additions, soustractions, tables, doubles, compléments',exos:[mental,ex('maths','tables'),ex('maths','doubles'),complements,fois10]},
+  {id:'geometrie',ico:'📐',name:'Géométrie',desc:'Figures, angle droit, symétrie, mesurer, périmètre, solides',exos:[formes,cotes,angles,symetrie,longueur,perimetre,solides]},
+  {id:'problemes',ico:'📖',name:'Problèmes',desc:'Petites histoires, achats et monnaie, durées',exos:[ex('maths','problemes'),achats,durees]},
+  {id:'nombres',ico:'🔢',name:'Nombres et mesures',desc:'Écrire et comparer les nombres, l\'heure, la monnaie',exos:[ex('maths','lettres'),ex('maths','comparer'),ex('maths','decompo'),ex('maths','heure'),ex('maths','monnaie')]}
+ ],
+ francais:[
+  {id:'grammaire',ico:'🔍',name:'Grammaire',desc:'Nature des mots, verbe et sujet, types de phrases, négation, masculin/féminin',exos:[ex('francais','nature'),verbeSujet,typePhrase,negation,genre]},
+  {id:'conjugaison',ico:'⏳',name:'Conjugaison',desc:'Présent, futur et imparfait, par groupe de verbes',opts:true,exos:[conjForme,conjPronom,conjTemps,conjInfinitif,conjGroupe]},
+  {id:'vocabulaire',ico:'💬',name:'Vocabulaire',desc:'Synonymes, contraires, familles de mots, catégories, ordre alphabétique',exos:[synonymes,contraires,familles,generique,ex('francais','alpha')]},
+  {id:'orthographe',ico:'✏️',name:'Orthographe',desc:'Dictée, homophones, pluriel, accords, sons difficiles',exos:[ex('francais','dictee'),ex('francais','homophones'),ex('francais','pluriel'),accordGN,sons,motBien]}
+ ],
+ anglais:[
+  {id:'vocab',ico:'🐶',name:'Vocabulaire',desc:'Animaux, couleurs, nourriture, vêtements, corps, famille…',exos:[ex('anglais','img2word'),ex('anglais','word2img')]},
+  {id:'ecoute',ico:'🎧',name:'Écoute',desc:'Écoute un mot et trouve la bonne image',exos:[ex('anglais','listen')]},
+  {id:'nombresjours',ico:'📅',name:'Nombres et jours',desc:'Les nombres jusqu\'à 20 et les jours de la semaine',exos:[ex('anglais','numbers'),days]},
+  {id:'phrases',ico:'👋',name:'Petites phrases',desc:'Bonjour, merci, comment ça va…',exos:[ex('anglais','phrases')]},
+  {id:'ecrire',ico:'⌨️',name:'Écrire en anglais',desc:'Écris le mot en anglais avec le clavier',exos:[ex('anglais','spell')]}
+ ],
+ logique:[solo('logique','suite','🔢','Trouve le nombre suivant'),solo('logique','motif','🔴','Continue le motif'),solo('logique','intrus','🕵️','Trouve celui qui n\'est pas de la famille'),solo('logique','balance','⚖️','Équilibre la balance'),solo('logique','devinette','🤔','Je pense à un nombre…')],
+ monde:[solo('monde','vivant','🌱','Animaux et plantes'),solo('monde','matiere','🧊','L\'eau, les objets, l\'électricité'),solo('monde','corps','🫀','Les organes, les sens, la santé'),solo('monde','temps','📆','Calendrier, durées, histoire'),solo('monde','espace','🪐','Soleil, Terre, Lune, planètes'),solo('monde','securite','🚸','Sécurité, citoyenneté, recyclage')],
+ guadeloupe:[solo('guadeloupe','carte','🗺️','Trouve les îles et les lieux'),solo('guadeloupe','geo','⛰️','Volcan, villes, saisons, histoire'),solo('guadeloupe','nature','🦎','Animaux et plantes de l\'île'),solo('guadeloupe','culture','🥁','Gwoka, madras, Carnaval…'),solo('guadeloupe','cuisine','🥥','Plats et fruits de chez nous'),solo('guadeloupe','creole','🗣️','Des mots en créole')]
+};
+const THEMES={};for(const s in TOPICS)THEMES[s]=[...new Set(TOPICS[s].flatMap(t=>t.exos))];
 
 const SUBJ={
  maths:{name:'Maths',ico:'🔢',deco:'➗',color:'var(--maths)'},
@@ -995,6 +1360,7 @@ const BADGES=[
  ['dictee','📝','As de la dictée','Écris 15 mots de dictée',s=>(s.counters.dictee||0)>=15],
  ['conj','🎭','Conjugueur','Réussis 25 conjugaisons',s=>(s.counters.conj||0)>=25],
  ['en50','🗽','Globe-trotteur','50 bonnes réponses en anglais',s=>(s.counters.anglais||0)>=50],
+ ['geo','📐','Architecte','Réussis 20 exercices de géométrie',s=>(s.counters.geo||0)>=20],
  ['monde5','🔭','Petit scientifique','5 séances de Questionner le monde',s=>s.subjects.monde.sessions>=5],
  ['gwada5','🌺','Ambassadeur de Guadeloupe','5 séances de Découvrir la Guadeloupe',s=>s.subjects.guadeloupe.sessions>=5],
  ['carte','🗺️','Cartographe','Trouve 10 lieux sur la carte',s=>(s.counters.carte||0)>=10],
@@ -1015,7 +1381,7 @@ const LS_KEY='ecole-magique-v1';
 function defaultState(){
   const sub=()=>({level:1,good:0,sessions:0,sumPct:0});
   return {v:1,updatedAt:0,profile:null,sound:true,
-    subjects:{maths:sub(),francais:sub(),anglais:sub(),logique:sub(),monde:sub(),guadeloupe:sub()},
+    subjects:{maths:sub(),francais:sub(),anglais:sub(),logique:sub(),monde:sub(),guadeloupe:sub()},topics:{},prefs:{},
     stats:{sessions:0,correct:0,answered:0,perfect:0,retryWins:0,stars:0,streak:0,bestStreak:0,lastDay:null,defis:0,lastDefi:null},
     counters:{},flags:{},today:{day:'',subjects:[]},badges:{},history:[]};
 }
@@ -1023,7 +1389,7 @@ function normalize(s){
   const d=defaultState();if(!s||typeof s!=='object')return d;
   const o={...d,...s};o.subjects={...d.subjects};for(const k in d.subjects)o.subjects[k]={...d.subjects[k],...((s.subjects||{})[k]||{})};
   o.stats={...d.stats,...(s.stats||{})};o.counters={...(s.counters||{})};o.flags={...(s.flags||{})};o.badges={...(s.badges||{})};
-  o.history=Array.isArray(s.history)?s.history.slice(-40):[];o.today=s.today||d.today;return o;
+  o.topics={...(s.topics||{})};o.prefs={...(s.prefs||{})};o.history=Array.isArray(s.history)?s.history.slice(-40):[];o.today=s.today||d.today;return o;
 }
 let state=defaultState();
 try{const raw=localStorage.getItem(LS_KEY);if(raw)state=normalize(JSON.parse(raw))}catch(e){}
@@ -1064,7 +1430,7 @@ async function initCloud(){
 }
 
 /* ========== NAV ========== */
-const screens=['setup','home','quiz','results','badges','gate','parent'];
+const screens=['setup','home','topics','quiz','results','badges','gate','parent'];
 function show(name){for(const s of screens)$('#s-'+s).classList.toggle('hidden',s!==name);window.scrollTo(0,0);if(name!=='quiz')$('#fb').classList.remove('show')}
 function route(){if(!state.profile){renderSetup();show('setup')}else{renderHome();show('home')}}
 document.addEventListener('click',e=>{const h=e.target.closest('[data-home]');if(h){if(canSpeak)try{speechSynthesis.cancel()}catch(_){};route()}});
@@ -1107,7 +1473,34 @@ function renderHome(){
   $('#hBadgeCount').textContent=`${got.length} sur ${BADGES.length} gagnés`;
   $('#hLastBadges').textContent=got.sort((a,b)=>state.badges[b[0]]-state.badges[a[0]]).slice(0,4).map(b=>b[1]).join('');
 }
-$('#subjects').addEventListener('click',e=>{const b=e.target.closest('[data-subj]');if(b)startQuiz(b.dataset.subj)});
+$('#subjects').addEventListener('click',e=>{const b=e.target.closest('[data-subj]');if(b)openTopics(b.dataset.subj)});
+/* ========== TOPICS SCREEN ========== */
+let curSubj=null;
+function topicStat(s,t){const k=state.topics[s+'.'+t];return k&&k.sessions?`${k.sessions} séance${k.sessions>1?'s':''} · ${Math.round(k.sumPct/k.sessions)} %`:'Pas encore joué'}
+function openTopics(s){
+  curSubj=s;const v=SUBJ[s];$('#tpTitle').textContent=v.ico+' '+v.name;$('#tpLevel').textContent=LVL_NAME[state.subjects[s].level];
+  const L=state.subjects[s].level;
+  $('#tpGrid').innerHTML=`<button class="topic mix" data-tp="mix" style="--c:${v.color}"><span class="tico">🎲</span><div><h3>Tout mélanger</h3><p>Un peu de tout en ${v.name.toLowerCase()}</p><small>${topicStat(s,'mix')}</small></div></button>`+
+    TOPICS[s].map(t=>`<button class="topic" data-tp="${t.id}" style="--c:${v.color}"><span class="tico">${t.ico}</span><div><h3>${t.name}</h3><p>${t.desc}</p><small>${topicStat(s,t.id)}</small></div></button>`).join('');
+  $('#conjPanel').classList.add('hidden');show('topics');
+}
+$('#tpGrid').addEventListener('click',e=>{const b=e.target.closest('[data-tp]');if(!b)return;const t=TOPICS[curSubj].find(x=>x.id===b.dataset.tp);
+  if(t&&t.opts){renderConjPanel();return}startQuiz(curSubj,b.dataset.tp)});
+function renderConjPanel(){
+  const pr=state.prefs.conj||{t:['p'],g:['g1']};
+  const chip=(k,v,l)=>`<button class="tchip ${pr[k].includes(v)?'on':''}" data-ck="${k}" data-cv="${v}">${l}</button>`;
+  $('#conjPanel').innerHTML=`<h3>⏳ Conjugaison : que veux-tu travailler ?</h3>
+   <div class="cgroup"><b>Temps</b>${chip('t','p','Présent')}${chip('t','f','Futur')}${chip('t','i','Imparfait')}</div>
+   <div class="cgroup"><b>Verbes</b>${chip('g','g1','1er groupe (-er)')}${chip('g','g2','2e groupe (-ir)')}${chip('g','g3','3e groupe')}${chip('g','ea','être et avoir')}</div>
+   <div class="row" style="margin-top:14px"><button class="btn" id="conjCancel">Annuler</button><button class="btn primary" id="conjGo">C'est parti ⚽</button></div>`;
+  $('#conjPanel').classList.remove('hidden');$('#conjPanel').scrollIntoView({behavior:'smooth',block:'center'});
+}
+$('#conjPanel').addEventListener('click',e=>{
+  const c=e.target.closest('[data-ck]');const pr=state.prefs.conj||(state.prefs.conj={t:['p'],g:['g1']});
+  if(c){const k=c.dataset.ck,v=c.dataset.cv;const a=pr[k];const i=a.indexOf(v);if(i>=0){if(a.length>1)a.splice(i,1)}else a.push(v);save();renderConjPanel();return}
+  if(e.target.closest('#conjCancel')){$('#conjPanel').classList.add('hidden');return}
+  if(e.target.closest('#conjGo'))startQuiz('francais','conjugaison',{t:pr.t.slice(),g:pr.g.slice()});
+});
 $('#defiBtn').addEventListener('click',()=>startQuiz('defi'));
 $('#badgesBtn').addEventListener('click',()=>{renderBadges();show('badges')});
 $('#parentBtn').addEventListener('click',openGate);
@@ -1116,25 +1509,31 @@ $('#fsBtn').addEventListener('click',()=>{try{const d=document.documentElement;i
 /* ========== QUIZ ========== */
 let quiz=null;
 const NQ=10;
-function buildQuestions(subj){
+function topicExos(s,tid){
+  const L=state.subjects[s].level;const tps=tid&&tid!=='mix'?TOPICS[s].filter(t=>t.id===tid):TOPICS[s];
+  let out=[];for(const t of tps)for(const e of t.exos)if(e.min<=L)out.push({e,t,L});
+  if(!out.length)for(const t of tps)for(const e of t.exos)out.push({e,t,L:Math.max(L,e.min)});
+  return out;
+}
+function buildQuestions(subj,tid,opts){
   const qs=[];const seen=new Set();
   const plan=subj==='defi'?shuffle(['maths','maths','francais','francais','anglais','anglais','logique','monde','guadeloupe','guadeloupe']):Array(NQ).fill(subj);
-  let lastTheme=null;
+  let last=null;
   for(const s of plan){
-    const L=state.subjects[s].level;const themes=THEMES[s].filter(t=>t.min<=L);
+    const pool=topicExos(s,subj==='defi'?'mix':tid);const mix=subj==='defi'||!tid||tid==='mix';
     let q=null;
     for(let k=0;k<30;k++){
-      const avail=themes.length>1?themes.filter(t=>t.id!==lastTheme):themes;
-      const th=pick(avail);const c=th.gen(L);c.theme=th.name;c.themeId=th.id;c.subj=s;
-      const key=c.prompt+'|'+c.answer;if(!seen.has(key)){seen.add(key);q=c;lastTheme=th.id;break}
+      const avail=pool.length>1?pool.filter(x=>x.e.id!==last):pool;
+      const x=pick(avail);const c=x.e.gen(x.L,opts);c.theme=mix&&x.t.exos.length>1?x.t.name+' · '+x.e.name:x.e.name;c.themeId=x.e.id;c.subj=s;c.topic=x.t.id;
+      const key=c.prompt+'|'+c.answer;if(!seen.has(key)){seen.add(key);q=c;last=x.e.id;break}
       q=c;
     }
     qs.push(q);
   }
   return qs;
 }
-function startQuiz(subj){
-  quiz={subj,qs:buildQuestions(subj),i:0,results:[],stars:0,start:Date.now(),tries:0,locked:false,input:''};
+function startQuiz(subj,tid,opts){
+  quiz={subj,tid:tid||'mix',opts,qs:buildQuestions(subj,tid,opts),i:0,results:[],stars:0,start:Date.now(),tries:0,locked:false,input:''};
   stopConfetti();show('quiz');renderQ();
 }
 function renderDots(){
@@ -1279,12 +1678,13 @@ function finishQuiz(){
   if(q.subj==='defi'){if(st.lastDefi!==t){st.defis++;st.lastDefi=t;bonus+=10}}
   else{
     const s=state.subjects[q.subj];s.sessions++;s.sumPct+=pct;
+    const tk=q.subj+'.'+(q.tid||'mix');const ts=state.topics[tk]||(state.topics[tk]={sessions:0,sumPct:0});ts.sessions++;ts.sumPct+=pct;
     if(pct>=80){s.good++;if(s.good>=2&&s.level<3){s.level++;s.good=0;levelMsg=`🎊 Tu passes au <b>${LVL_NAME[s.level]}</b> en ${SUBJ[q.subj].name} !`}else if(s.level<3){levelMsg=`Encore une séance comme ça et tu montes de niveau ! 💪`}}
     else if(pct<50){s.good=0;if(s.level>1){s.level--;levelMsg=`On revient au ${LVL_NAME[s.level]} pour bien s'entraîner. Le coach croit en toi ! 💪`}}
     else s.good=0;
   }
   const earned=firstOk+bonus;st.stars+=earned;
-  state.history.push({d:Date.now(),s:q.subj,sc:score,n:q.qs.length,t:Math.round(dur)});state.history=state.history.slice(-40);
+  const tpObj=q.subj!=='defi'&&q.tid&&q.tid!=='mix'?TOPICS[q.subj].find(t=>t.id===q.tid):null;state.history.push({d:Date.now(),s:q.subj,tp:tpObj?tpObj.name:'',sc:score,n:q.qs.length,t:Math.round(dur)});state.history=state.history.slice(-40);
   const newB=checkBadges();
   save();
   // render
@@ -1297,7 +1697,7 @@ function finishQuiz(){
     ${levelMsg?`<div class="levelup">${levelMsg}</div>`:''}
     ${newB.length?`<h2 style="margin-top:8px">Nouveau${newB.length>1?'x':''} badge${newB.length>1?'s':''} !</h2><div class="newbadges">${newB.map(b=>`<div class="badge mini"><div class="b-ico">${b[1]}</div><h4>${b[2]}</h4></div>`).join('')}</div>`:''}
     <div class="row" style="margin-top:14px"><button class="btn" id="againBtn">🔁 Rejouer</button><button class="btn primary" data-home>🏠 Accueil</button></div>`;
-  $('#againBtn').addEventListener('click',()=>startQuiz(q.subj));
+  $('#againBtn').addEventListener('click',()=>startQuiz(q.subj,q.tid,q.opts));
   show('results');
   if(nStars>=2||newB.length){confetti();sWin()}
 }
@@ -1339,9 +1739,9 @@ function renderParent(){
   $('#pStats').innerHTML=[[st.sessions,'séances'],[rate+' %','réussite du 1er coup'],[st.stars,'étoiles'],[st.bestStreak,'meilleure série (jours)'],[Object.keys(state.badges).length+' / '+BADGES.length,'badges'],[st.defis,'matchs du jour']]
     .map(([v,l])=>`<div class="stat"><b>${v}</b><span>${l}</span></div>`).join('');
   $('#pLevels').innerHTML=Object.entries(SUBJ).map(([k,v])=>{const s=state.subjects[k];const avg=s.sessions?Math.round(s.sumPct/s.sessions)+' % de moyenne':'pas encore de séance';
-    return `<div class="lvlrow"><span class="nm">${v.ico} ${v.name}<br><small style="color:var(--soft)">${s.sessions} séance(s) · ${avg}</small></span><button class="icon-btn" data-lv="${k}" data-d="-1">−</button><span class="v">${LVL_NAME[s.level]}</span><button class="icon-btn" data-lv="${k}" data-d="1">+</button></div>`}).join('');
+    return `<div class="lvlrow"><span class="nm">${v.ico} ${v.name}<br><small style="color:var(--soft)">${s.sessions} séance(s) · ${avg}</small>${TOPICS[k].filter(t=>state.topics[k+'.'+t.id]).map(t=>`<br><small style="color:var(--soft)">&nbsp;&nbsp;${t.ico} ${t.name} : ${topicStat(k,t.id)}</small>`).join('')}</span><button class="icon-btn" data-lv="${k}" data-d="-1">−</button><span class="v">${LVL_NAME[s.level]}</span><button class="icon-btn" data-lv="${k}" data-d="1">+</button></div>`}).join('');
   const H=state.history.slice().reverse().slice(0,12);
-  $('#pHist').innerHTML=H.length?`<table class="hist"><tr><th>Date</th><th>Matière</th><th>Score</th><th>Durée</th></tr>${H.map(h=>`<tr><td>${new Date(h.d).toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'})} ${new Date(h.d).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</td><td>${h.s==='defi'?'⚽ Match':SUBJ[h.s].ico+' '+SUBJ[h.s].name}</td><td>${String(h.sc).replace('.',',')}/${h.n}</td><td>${Math.floor(h.t/60)} min ${h.t%60}s</td></tr>`).join('')}</table>`:'<p style="color:var(--soft)">Aucune séance pour l\'instant.</p>';
+  $('#pHist').innerHTML=H.length?`<table class="hist"><tr><th>Date</th><th>Matière</th><th>Score</th><th>Durée</th></tr>${H.map(h=>`<tr><td>${new Date(h.d).toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'})} ${new Date(h.d).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</td><td>${h.s==='defi'?'⚽ Match':SUBJ[h.s].ico+' '+SUBJ[h.s].name+(h.tp?' · '+h.tp:'')}</td><td>${String(h.sc).replace('.',',')}/${h.n}</td><td>${Math.floor(h.t/60)} min ${h.t%60}s</td></tr>`).join('')}</table>`:'<p style="color:var(--soft)">Aucune séance pour l\'instant.</p>';
   $('#pName').value=state.profile.name;
   $('#pSound').textContent=state.sound?'🔊 Activés':'🔇 Coupés';
   $('#pSync').textContent=cloud.ref?(cloud.status==='error'?'⚠️ Erreur de synchronisation, sauvegarde locale active':'☁️ Sauvegardée en ligne sur votre compte'):'💾 Sauvegardée sur cet appareil uniquement';
